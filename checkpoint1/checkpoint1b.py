@@ -17,20 +17,95 @@ Once you are finished with this program, you should run `python preprocess.py` f
 This should load the data, perform preprocessing, and save the output to the data folder.
 
 """
+import pandas as pd
+
 
 def remove_percents(df, col):
+    def erase_percents(data):
+        if isinstance(data, str):
+            if '%' in data:
+                return float(data[:len(data) - 1])
+        return data
+        
+    df[col] = df[col].apply(erase_percents)
     return df
 
-def fill_zero_iron(df):
+
+def fill_zero_iron(df):   
+    def fill_zero(data):
+        if pd.isna(data):
+            return 0.00
+        else:
+            return float(data)         
+    
+    df['Iron (% DV)'] = df['Iron (% DV)'].apply(fill_zero)
     return df
     
+
 def fix_caffeine(df):
+    # had trouble with pd's median() and mean(), so I made my own function
+    def find_mean():
+        count = 0
+        curr_sum = 0
+        for data in df['Caffeine (mg)']:
+            if pd.isna(data): # if data == 'NaN' or varies'
+                pass
+            elif str(data).lower() == "varies":
+                pass
+            else:
+                count += 1
+                curr_sum += float(data)
+        return curr_sum / count
+        
+    def fill_caffeine(data):
+        if pd.isna(data):
+            return 0.00
+        elif str(data).lower() == 'varies':
+            return mean
+        else:
+            return float(data)         
+    
+    mean = find_mean()
+    df['Caffeine (mg)'] = df['Caffeine (mg)'].apply(fill_caffeine)
     return df
+
 
 def standardize_names(df):
+    def standardize(string):
+        char = 0
+        while char < len(string):
+            if string[char] == ' ':
+                pass
+            elif string[char] == '_':
+                string = string[: char] + ' ' + string[char + 1:]
+            elif string[char] == '(':
+                string = string[: char - 1] # get rid of ( ) and the preceding space
+            char += 1
+        return string.lower()
+            
+    col_names_new = []
+    for col_name in list(df.columns):
+        col_names_new.append(standardize(col_name))
+        
+    df.columns = col_names_new
     return df
 
+
 def fix_strings(df, col):
+    def turn_lower_alpha(string):
+        string_copy = string.replace(' ', '')
+        if not string_copy.isalpha():
+            char = 0
+            while char < len(string):
+                if string[char] == ' ':
+                    pass
+                elif not string[char].isalpha():
+                    string = string[: char] + string[char + 1:]
+                    char = char - 1
+                char += 1 
+        return string.lower()
+    
+    df[col] = df[col].apply(turn_lower_alpha)
     return df
 
 
@@ -66,7 +141,7 @@ def main():
     
     # now that the data is all clean, save your output to the `data` folder as 'starbucks_clean.csv'
     # you will use this file in checkpoint 2
-    
+    df.to_csv('../data/starbucks_clean.csv')
     
 
 if __name__ == "__main__":
